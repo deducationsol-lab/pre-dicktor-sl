@@ -80,7 +80,7 @@ st.markdown("""
 
 # === SECURE ADMIN PASSWORD (HIDDEN) ===
 # Replace this hash with your own by running:
-# import hashlib; print(hashlib.sha256("your_password".encode()).hexdigest())
+# import hashlib; print(hashlib.sha256("6645adc23275824958437afdcc809d3027c4f772ee65ebd26846e943e6209437".encode()).hexdigest())
 EXPECTED_HASH = "# app.py – Pre-DICKTOR v2.0: Full Final Version (Custom Voting + Secure Admin + Funny Charts)
 import streamlit as st
 import requests
@@ -157,8 +157,8 @@ st.markdown("""
 
 # === SECURE ADMIN PASSWORD (HIDDEN) ===
 # Replace this hash with your own by running:
-# import hashlib; print(hashlib.sha256("your_password".encode()).hexdigest())
-EXPECTED_HASH = "9f86d081884c7d659a2feaa0c55ad015a3bf4f1b2b0b822cd15d6c15b0f00a08"  # default = "test"
+# import hashlib; print(hashlib.sha256("6645adc23275824958437afdcc809d3027c4f772ee65ebd26846e943e6209437".encode()).hexdigest())
+EXPECTED_HASH = "6645adc23275824958437afdcc809d3027c4f772ee65ebd26846e943e6209437"  # default = "test"
 
 def check_admin_password(pwd: str) -> bool:
     return hashlib.sha256(pwd.encode()).hexdigest() == EXPECTED_HASH

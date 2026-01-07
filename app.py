@@ -1,157 +1,110 @@
 import streamlit as st
 import requests
-import json
-from datetime import datetime
+from datetime import datetime, timedelta
 import uuid
-import smtplib
-from email.mime.text import MIMEText
-from email.mime.multipart import MIMEMultipart
+import pandas as pd
+import plotly.express as px
 
 # Page config
-st.set_page_config(page_title="MemeMarket", page_icon="🚀", layout="centered")
+st.set_page_config(page_title="Pre-DICKTOR", page_icon="🍆", layout="wide")
 
-# Disclaimer (shown once)
+# High-tech neon dark theme
+st.markdown("""
+<style>
+    .stApp {
+        background: #000000;
+        color: #e0ffe0;
+    }
+    .big-title {
+        font-size: 5.5rem !important;
+        font-weight: 900;
+        text-align: center;
+        background: linear-gradient(90deg, #39ff14, #ff00ff, #00ffff, #39ff14);
+        -webkit-background-clip: text;
+        -webkit-text-fill-color: transparent;
+        animation: neon-pulse 3s ease-in-out infinite alternate;
+        text-shadow: 0 0 20px #39ff14;
+    }
+    @keyframes neon-pulse {
+        from { text-shadow: 0 0 10px #39ff14, 0 0 20px #39ff14; }
+        to { text-shadow: 0 0 20px #ff00ff, 0 0 40px #ff00ff; }
+    }
+    .subtitle {
+        font-size: 2.2rem;
+        text-align: center;
+        color: #ff00ff;
+        text-shadow: 0 0 15px #ff00ff;
+    }
+    .stButton > button {
+        background: linear-gradient(45deg, #001a00, #1a0033);
+        color: #39ff14;
+        border: 2px solid #39ff14;
+        border-radius: 15px;
+        padding: 15px 30px;
+        font-size: 1.3rem;
+        font-weight: bold;
+        box-shadow: 0 0 25px rgba(57, 255, 20, 0.6);
+    }
+    .stButton > button:hover {
+        box-shadow: 0 0 40px rgba(255, 0, 255, 0.8);
+        transform: translateY(-3px);
+    }
+    .market-card {
+        background: rgba(10, 10, 30, 0.8);
+        border: 3px solid #ff00ff;
+        border-radius: 20px;
+        padding: 30px;
+        margin: 30px 0;
+        box-shadow: 0 0 30px rgba(255, 0, 255, 0.5);
+    }
+    .share-btn {
+        background: linear-gradient(45deg, #ff00ff, #8000ff);
+        color: white;
+        border: none;
+        padding: 12px 25px;
+        border-radius: 50px;
+        font-weight: bold;
+        box-shadow: 0 0 25px #ff00ff;
+    }
+    .dedu-card {
+        background: rgba(20, 0, 40, 0.7);
+        border: 4px solid #39ff14;
+        border-radius: 20px;
+        padding: 30px;
+        text-align: center;
+        box-shadow: 0 0 40px rgba(57, 255, 20, 0.4);
+    }
+</style>
+<link href="https://fonts.googleapis.com/css2?family=Orbitron:wght@800&display=swap" rel="stylesheet">
+""", unsafe_allow_html=True)
+
+# Disclaimer
 if 'disclaimer_accepted' not in st.session_state:
     st.session_state.disclaimer_accepted = False
 
 if not st.session_state.disclaimer_accepted:
     st.markdown("""
-    <div style="background:#000;padding:30px;border-radius:16px;border:2px solid #0f0;text-align:center;max-width:600px;margin:auto">
-        <h2 style="color:#ff4444">⚠️ RISK DISCLAIMER</h2>
-        <p><strong>This is NOT financial advice.</strong></p>
-        <p>MemeMarket is a high-risk prediction platform for memecoins using <strong>$DEDU</strong>.</p>
-        <p><strong>You can lose 100% of your investment.</strong> Only use money you can afford to lose completely.</p>
-        <p>By continuing, you confirm you fully understand the risks of trading volatile crypto assets.</p>
+    <div style='background:rgba(20,0,40,0.8);padding:50px;border-radius:20px;border:4px dashed #39ff14;text-align:center;box-shadow:0 0 40px rgba(57,255,20,0.4);max-width:800px;margin:auto'>
+        <h1 style='color:#ff00ff'>🔴 ACCESS RESTRICTED 🔴</h1>
+        <h2 style='color:#39ff14'>PRE-DICKTOR v2.0 ONLINE</h2>
+        <p style='font-size:1.6rem;color:#b0ffb0'>
+            NOT financial advice. Extreme volatility zone.<br>
+            You may lose all funds instantly.<br>
+            Only risk what you can afford to lose.
+        </p>
     </div>
     """, unsafe_allow_html=True)
-    
-    col1, col2 = st.columns([1,1])
+    col1, col2 = st.columns(2)
     with col1:
-        if st.button("I Do Not Accept", type="secondary"):
-            st.error("You cannot use MemeMarket without accepting the risks.")
+        if st.button("EXIT", type="secondary", use_container_width=True):
             st.stop()
     with col2:
-        if st.button("I Understand & Accept the Risks", type="primary"):
+        if st.button("ENTER MATRIX – I ACCEPT RISKS", type="primary", use_container_width=True):
             st.session_state.disclaimer_accepted = True
+            st.balloons()
             st.rerun()
     st.stop()
 
-# Initialize markets in session state
-if 'markets' not in st.session_state:
-    st.session_state.markets = []
-
-DEDU_MINT = "AqDGzh4jRZipMrkBuekDXDB1Py2huA8G5xCvrSgmpump"
-
-# Header
-st.title("🚀 MemeMarket")
-st.markdown("**The $DEDU-Powered Memecoin Prediction Platform**")
-
-# Wallet Connect (Phantom)
-if 'wallet' not in st.session_state:
-    st.session_state.wallet = None
-
-if st.button("Connect Phantom Wallet"):
-    st.markdown("""
-    <script src="https://unpkg.com/@solana/web3.js@latest/lib/index.iife.min.js"></script>
-    <script>
-    async function connect() {
-        if (window.solana && window.solana.isPhantom) {
-            try {
-                const resp = await window.solana.connect();
-                window.location.href = window.location.href + "?wallet=" + resp.publicKey.toString();
-            } catch (err) {
-                alert("Connection failed");
-            }
-        } else {
-            alert("Install Phantom wallet!");
-        }
-    }
-    connect();
-    </script>
-    """, unsafe_allow_html=True)
-
-# Get wallet from URL
-import urllib.parse
-params = urllib.parse.parse_qs(urllib.parse.urlparse(st.experimental_get_query_params().get("request_uri", [""])[0]).query)
-if "wallet" in params:
-    st.session_state.wallet = params["wallet"][0][:8] + "..." + params["wallet"][0][-4:]
-    st.success(f"Wallet connected: {st.session_state.wallet}")
-
-# Live Prices
-st.subheader("Live Crypto Prices (USD)")
-try:
-    prices = requests.get("https://api.coingecko.com/api/v3/simple/price?ids=bitcoin,ethereum,solana,binancecoin&vs_currencies=usd").json()
-    cols = st.columns(4)
-    cols[0].metric("Bitcoin", f"${prices.get('bitcoin', {}).get('usd', 'N/A')}")
-    cols[1].metric("Ethereum", f"${prices.get('ethereum', {}).get('usd', 'N/A')}")
-    cols[2].metric("Solana", f"${prices.get('solana', {}).get('usd', 'N/A')}")
-    cols[3].metric("BNB", f"${prices.get('binancecoin', {}).get('usd', 'N/A')}")
-except:
-    st.error("Price fetch failed")
-
-# Swap to $DEDU
-st.subheader("Get $DEDU to Trade")
-st.markdown("Swap SOL directly to $DEDU using Jupiter:")
-st.markdown(f"""
-<jupiter-widget
-  input-mint="So11111111111111111111111111111111111111112"
-  output-mint="{DEDU_MINT}"
-  amount="100000000">
-</jupiter-widget>
-<script type="module" src="https://unpkg.com/@jup-ag/widget-embedded@latest"></script>
-""", unsafe_allow_html=True)
-
-# Admin Panel (simple - use your email)
-if st.sidebar.checkbox("Admin Mode"):
-    if st.sidebar.text_input("Admin Email") == "deducation.sol@gmail.com":
-        st.sidebar.success("Admin access granted")
-        
-        st.subheader("Create New Market")
-        with st.form("create_market"):
-            question = st.text_input("Question", "Will $PEPE reach $0.0001 by end of month?")
-            memecoin = st.text_input("CoinGecko ID", "pepe")
-            target = st.number_input("Target Price (USD)", 0.000001)
-            date = st.date_input("Resolution Date")
-            submitted = st.form_submit_button("Create Market")
-            
-            if submitted:
-                market = {
-                    "id": str(uuid.uuid4()),
-                    "question": question,
-                    "memecoin_id": memecoin,
-                    "target_price": target,
-                    "resolution_date": str(date),
-                    "yes_pool": 10000.0,
-                    "no_pool": 10000.0,
-                    "constant": 100000000.0,
-                    "resolved": False
-                }
-                st.session_state.markets.append(market)
-                st.success("Market created!")
-
-# Markets Display & Trading
-st.subheader("Active Prediction Markets")
-for market in st.session_state.markets:
-    with st.expander(f"📈 {market['question']} | Ends: {market['resolution_date']}"):
-        yes_price = market['no_pool'] / (market['yes_pool'] + market['no_pool'])
-        no_price = 1 - yes_price
-        
-        col1, col2 = st.columns(2)
-        col1.metric("YES Price", f"${yes_price:.4f}")
-        col2.metric("NO Price", f"${no_price:.4f}")
-        
-        col3, col4 = st.columns(2)
-        if col3.button("Buy YES (100 $DEDU)", key=f"yes_{market['id']}"):
-            if st.session_state.wallet:
-                st.success("Simulated: Bought 100 $DEDU on YES")
-            else:
-                st.warning("Connect wallet first!")
-        if col4.button("Buy NO (100 $DEDU)", key=f"no_{market['id']}"):
-            if st.session_state.wallet:
-                st.success("Simulated: Bought 100 $DEDU on NO")
-            else:
-                st.warning("Connect wallet first!")
-
-# Footer
-st.markdown("---")
-st.markdown("Made with ❤️ by Deduction | Powered by $DEDU")
+# Title
+st.markdown('<h1 class="big-title">Pre-DICKTOR</h1>', unsafe_allow_html=True)
+st.markdown('<p class="subtitle">Meme Prediction Matrix | Powered

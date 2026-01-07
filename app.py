@@ -163,4 +163,109 @@ dedu_data = pd.DataFrame({
 })
 fig_dedu = px.line(dedu_data, x='Date', y=['Price (USD)', 'Holders'],
                    color_discrete_map={'Price (USD)': '#ff00ff', 'Holders': '#39ff14'})
-fig_dedu
+fig_dedu.update_layout(plot_bgcolor='rgba(0,0,0,0)', paper_bgcolor='rgba(0,0,0,0)', font_color='#e0ffe0')
+st.plotly_chart(fig_dedu, use_container_width=True)
+
+st.markdown("<p style='font-size:1.6rem;color:#39ff14'>Buy $DEDU now to play Pre-DICKTOR and catch the next leg up! 🚀</p>", unsafe_allow_html=True)
+
+# Swap Widget
+st.markdown("<h3 style='color:#ff00ff'>SWAP SOL → $DEDU</h3>", unsafe_allow_html=True)
+st.markdown(f"""
+<jupiter-widget
+  input-mint="So11111111111111111111111111111111111111112"
+  output-mint="AqDGzh4jRZipMrkBuekDXDB1Py2huA8G5xCvrSgmpump"
+  amount="500000000">
+</jupiter-widget>
+<script type="module" src="https://unpkg.com/@jup-ag/widget-embedded@latest"></script>
+""", unsafe_allow_html=True)
+st.markdown("</div>", unsafe_allow_html=True)
+
+# Markets
+if 'markets' not in st.session_state:
+    st.session_state.markets = []
+
+# Fixed chart data function — same length
+def get_market_chart_data():
+    num_days = 30
+    dates = pd.date_range(end=datetime.today(), periods=num_days).strftime('%Y-%m-%d').tolist()
+    yes = list(range(10, 10 + 17 * num_days, 17))[:num_days]  # 30 points
+    no = list(range(5, 5 + 13 * num_days, 13))[:num_days]    # 30 points
+    return pd.DataFrame({'Date': dates, 'YES Bets': yes, 'NO Bets': no})
+
+# Admin sidebar
+with st.sidebar:
+    st.markdown("### 🔐 ADMIN")
+    pwd = st.text_input("Password", type="password")
+    if pwd == "deduction":
+        st.success("Access granted")
+        with st.form("create_market"):
+            question = st.text_input("Question", "Will $BONK 10x in 2026?")
+            memecoin = st.text_input("CoinGecko ID", "bonk")
+            target = st.number_input("Target Price (USD)", 0.0000001)
+            date = st.date_input("Resolution Date")
+            submitted = st.form_submit_button("🚀 LAUNCH MARKET")
+            if submitted:
+                new_market = {
+                    "id": str(uuid.uuid4()),
+                    "question": question,
+                    "memecoin_id": memecoin,
+                    "target_price": target,
+                    "resolution_date": str(date),
+                    "yes_pool": 20000.0,
+                    "no_pool": 20000.0,
+                    "constant": 400000000.0,
+                    "resolved": False
+                }
+                st.session_state.markets.append(new_market)
+                st.success("Market launched!")
+                st.balloons()
+
+# Display markets
+st.markdown("<h2 style='text-align:center;color:#ff00ff'>🧠 ACTIVE MARKETS</h2>", unsafe_allow_html=True)
+
+if not st.session_state.markets:
+    st.info("No active markets yet. Admin, launch one!")
+else:
+    for market in st.session_state.markets:
+        with st.container():
+            st.markdown("<div class='market-card'>", unsafe_allow_html=True)
+            st.markdown(f"<h3 style='text-align:center;color:#00ffff'>{market['question']}</h3>", unsafe_allow_html=True)
+            st.markdown(f"<p style='text-align:center;color:#ff00ff'>Resolves: {market['resolution_date']}</p>", unsafe_allow_html=True)
+
+            # Fixed market chart
+            chart_df = get_market_chart_data()
+            st.line_chart(chart_df.set_index('Date'), use_container_width=True)
+
+            yes_price = market['no_pool'] / (market['yes_pool'] + market['no_pool'])
+            no_price = 1 - yes_price
+
+            col1, col2, col3 = st.columns([2, 2, 1])
+            with col1:
+                st.markdown(f"<h2 style='color:#39ff14;text-align:center'>YES<br>${yes_price:.5f}</h2>", unsafe_allow_html=True)
+                if st.button("🟢 LONG", key=f"yes_{market['id']}", use_container_width=True):
+                    if st.session_state.wallet:
+                        st.success("LONG position opened 📈")
+                    else:
+                        st.warning("Connect wallet first")
+            with col2:
+                st.markdown(f"<h2 style='color:#ff0066;text-align:center'>NO<br>${no_price:.5f}</h2>", unsafe_allow_html=True)
+                if st.button("🔴 SHORT", key=f"no_{market['id']}", use_container_width=True):
+                    if st.session_state.wallet:
+                        st.success("SHORT position opened 🩸")
+                    else:
+                        st.warning("Connect wallet first")
+            with col3:
+                share_text = f"Pre-DICKTOR Prediction: {market['question']} | YES ${yes_price:.5f} vs NO ${no_price:.5f} 🍆"
+                share_url = "https://pre-dicktor.streamlit.app"  # Update after deploy
+                twitter_url = f"https://twitter.com/intent/tweet?text={requests.utils.quote(share_text)}&url={requests.utils.quote(share_url)}"
+                st.markdown(f'<a href="{twitter_url}" target="_blank"><button class="share-btn">📤 SHARE</button></a>', unsafe_allow_html=True)
+
+            st.markdown("</div>", unsafe_allow_html=True)
+
+# Footer
+st.markdown("""
+<div style='text-align:center;margin-top:60px;padding:40px;background:rgba(0,10,30,0.6);border:2px solid #39ff14;border-radius:20px'>
+    <h2 style='color:#ff00ff'>Pre-DICKTOR v2.0</h2>
+    <p style='color:#39ff14'>$DEDU Powered | Built for Degens | WAGMI 🍆</p>
+</div>
+""", unsafe_allow_html=True)

@@ -59,12 +59,12 @@ st.markdown("""
         font-weight: bold;
         box-shadow: 0 0 25px #ff00ff;
     }
-    .dedu-card {
-        background: rgba(20, 0, 40, 0.7);
-        border: 4px solid #39ff14;
+    .leaderboard {
+        background: rgba(0, 20, 20, 0.7);
+        border: 3px solid #39ff14;
         border-radius: 20px;
-        padding: 30px;
-        text-align: center;
+        padding: 20px;
+        margin: 30px 0;
         box-shadow: 0 0 40px rgba(57, 255, 20, 0.4);
     }
 </style>
@@ -149,31 +149,59 @@ try:
 except:
     st.warning("Price feed temporarily rugged 😅 Check CoinGecko")
 
-# $DEDU Token Hub
-st.markdown("<div class='dedu-card'>", unsafe_allow_html=True)
-st.markdown("<h2 style='color:#39ff14'>💜 $DEDU TOKEN HUB</h2>", unsafe_allow_html=True)
-st.markdown("<p style='font-size:1.5rem;color:#ff00ff'>Contract: <code>AqDGzh4jRZipMrkBuekDXDB1Py2huA8G5xCvrSgmpump</code></p>", unsafe_allow_html=True)
+# $DEDU Live Price from DexScreener
+st.markdown("<h2 style='text-align:center;color:#39ff14'>💜 $DEDU LIVE PRICE</h2>", unsafe_allow_html=True)
+DEDU_MINT = "AqDGzh4jRZipMrkBuekDXDB1Py2huA8G5xCvrSgmpump"
+try:
+    response = requests.get(f"https://api.dexscreener.com/latest/dex/tokens/{DEDU_MINT}").json()
+    if response.get('pairs'):
+        pair = response['pairs'][0]
+        price = float(pair['priceUsd'])
+        liquidity = pair['liquidity']['usd']
+        volume24h = pair['volume']['h24']
+        st.markdown(f"<h1 style='text-align:center;color:#ff00ff'>${price:.10f}</h1>", unsafe_allow_html=True)
+        st.markdown(f"<p style='text-align:center;color:#b0ffb0'>Liquidity: ${liquidity:,.0f} | 24h Volume: ${volume24h:,.0f}</p>", unsafe_allow_html=True)
+    else:
+        st.info("Token data loading... early launch vibes 🚀")
+except:
+    st.warning("Live $DEDU feed down — check DexScreener manually!")
 
-# $DEDU Chart
-dedu_df = pd.DataFrame({
-    'Date': pd.date_range(start='2026-01-01', periods=15).strftime('%m-%d'),
-    'Price (USD)': [0.0000048, 0.0000050, 0.0000051, 0.0000052, 0.0000051, 0.0000053, 0.0000054, 0.0000053, 0.0000053, 0.0000053, 0.0000053, 0.0000053, 0.0000053, 0.0000053, 0.0000053],
-    'Holders': [20, 22, 25, 27, 29, 31, 32, 33, 34, 35, 35, 35, 35, 35, 35]
-})
-fig_dedu = px.line(dedu_df, x='Date', y=['Price (USD)', 'Holders'],
-                   color_discrete_map={'Price (USD)': '#ff00ff', 'Holders': '#39ff14'})
-fig_dedu.update_layout(plot_bgcolor='rgba(0,0,0,0)', paper_bgcolor='rgba(0,0,0,0)', font_color='#e0ffe0')
-st.plotly_chart(fig_dedu, use_container_width=True)
-
-st.markdown("<p style='font-size:1.6rem;color:#39ff14'>Buy $DEDU now to vote and ride the wave! 🚀</p>", unsafe_allow_html=True)
-
-# Swap Widget
-st.markdown("<h3 style='color:#ff00ff'>SWAP → $DEDU</h3>", unsafe_allow_html=True)
+# $DEDU Swap Widget
+st.markdown("<h3 style='text-align:center;color:#ff00ff'>SWAP SOL → $DEDU</h3>", unsafe_allow_html=True)
 st.markdown(f"""
-<jupiter-widget input-mint="So11111111111111111111111111111111111111112" output-mint="AqDGzh4jRZipMrkBuekDXDB1Py2huA8G5xCvrSgmpump" amount="500000000"></jupiter-widget>
+<jupiter-widget input-mint="So11111111111111111111111111111111111111112" output-mint="{DEDU_MINT}" amount="500000000"></jupiter-widget>
 <script type="module" src="https://unpkg.com/@jup-ag/widget-embedded@latest"></script>
 """, unsafe_allow_html=True)
+
+# Leaderboard
+st.markdown("<div class='leaderboard'>", unsafe_allow_html=True)
+st.markdown("<h3 style='color:#39ff14;text-align:center'>🏆 TOP DEGEN VOTERS</h3>", unsafe_allow_html=True)
+leader_data = [
+    {"Rank": 1, "Wallet": "Deg3n...xY7z", "Votes": 5420, "Badge": "👑 King Degen"},
+    {"Rank": 2, "Wallet": "ApeM...k9Lp", "Votes": 4890, "Badge": "💎 Diamond Hands"},
+    {"Rank": 3, "Wallet": "Moon...qW2x", "Votes": 4350, "Badge": "🚀 Moon Boy"},
+    {"Rank": 4, "Wallet": "Rekt...pL5m", "Votes": 3980, "Badge": "🩸 Blood Trader"},
+    {"Rank": 5, "Wallet": "WAGM...vB8n", "Votes": 3670, "Badge": "🟢 WAGMI"},
+]
+for row in leader_data:
+    st.markdown(f"<p style='font-size:1.4rem;text-align:center'>{row['Rank']}. {row['Wallet']} — {row['Votes']} votes {row['Badge']}</p>", unsafe_allow_html=True)
 st.markdown("</div>", unsafe_allow_html=True)
+
+# Coming Soon Teaser
+st.info("🔥 Real $DEDU voting (burn/lock tokens) launching soon! Top voters get airdrop rewards 👀")
+
+# Social Links
+st.markdown("<h3 style='text-align:center;color:#ff00ff'>🌐 JOIN THE COMMUNITY</h3>", unsafe_allow_html=True)
+col1, col2, col3 = st.columns(3)
+with col1:
+    st.markdown('<a href="https://twitter.com/yourhandle" target="_blank"><button style="width:100%">🐦 Twitter</button></a>', unsafe_allow_html=True)
+with col2:
+    st.markdown('<a href="https://t.me/yourgroup" target="_blank"><button style="width:100%">✈️ Telegram</button></a>', unsafe_allow_html=True)
+with col3:
+    st.markdown('<a href="https://discord.gg/yourinvite" target="_blank"><button style="width:100%">🎮 Discord</button></a>', unsafe_allow_html=True)
+
+# Custom Domain Tip
+st.caption("Pro move: Grab pre-dicktor.com or dedu.vote for ultimate degen branding 🚀")
 
 # Markets
 if 'markets' not in st.session_state:
@@ -189,7 +217,7 @@ def get_market_chart_data(votes_dict):
         df[f"{option} 🔥"] = growth
     return df
 
-# Admin with your secure hash
+# Admin with secure password
 with st.sidebar:
     st.markdown("### 🔐 ADMIN ACCESS")
     pwd = st.text_input("Password", type="password")
